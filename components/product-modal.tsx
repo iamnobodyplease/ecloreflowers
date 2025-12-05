@@ -35,32 +35,58 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const phoneInputRef = useRef<HTMLInputElement>(null)
 
-  // Handle input focus and scroll on mobile
+  // Prevent body scroll when modal is open
   useEffect(() => {
-    if (!open) return
-
-    const handleInputFocus = (e: FocusEvent) => {
-      const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'BUTTON') {
-        // Small delay to ensure keyboard is opening
-        setTimeout(() => {
-          target.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          })
-        }, 300)
-      }
-    }
-
-    const formContainer = formContainerRef.current
-    if (formContainer) {
-      formContainer.addEventListener('focusin', handleInputFocus)
+    if (open) {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+      
       return () => {
-        formContainer.removeEventListener('focusin', handleInputFocus)
+        // Restore body scroll and position
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.width = ''
+        window.scrollTo(0, scrollY)
       }
     }
   }, [open])
+
+  // Handle input focus and scroll within modal container
+  const scrollInputIntoView = (element: HTMLElement) => {
+    const container = formContainerRef.current
+    if (!container) return
+
+    setTimeout(() => {
+      const containerRect = container.getBoundingClientRect()
+      const elementRect = element.getBoundingClientRect()
+      
+      // Calculate if element is outside visible area
+      const isAbove = elementRect.top < containerRect.top
+      const isBelow = elementRect.bottom > containerRect.bottom
+      
+      if (isAbove || isBelow) {
+        // Calculate scroll position to center the element
+        const scrollTop = container.scrollTop
+        const elementOffsetTop = element.offsetTop
+        const containerHeight = container.clientHeight
+        const elementHeight = element.offsetHeight
+        
+        const targetScrollTop = elementOffsetTop - (containerHeight / 2) + (elementHeight / 2)
+        
+        container.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth'
+        })
+      }
+    }, 300)
+  }
 
   const formatPhoneNumber = (value: string) => {
     // Remove all non-digit characters
@@ -105,7 +131,10 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass !max-w-[100vw] !w-[100vw] md:!max-w-[98vw] md:!w-[98vw] !h-[100vh] md:!h-auto !top-0 md:!top-[50%] !left-0 md:!left-[50%] !translate-x-0 md:!translate-x-[-50%] !translate-y-0 md:!translate-y-[-50%] !rounded-none md:!rounded-lg p-0 overflow-hidden [&>button]:text-[#f9abb9] md:[&>button]:text-white [&>button]:hover:text-[#f9abb9]/80 md:[&>button]:hover:text-white/80 [&>button]:glass [&>button]:rounded-full [&>button]:w-10 [&>button]:h-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:border [&>button]:border-[#f9abb9]/30 md:[&>button]:border-white/20 [&>button]:bg-[#f9abb9]/20 md:[&>button]:bg-[#f9abb9]/10 [&>button]:backdrop-blur-xl [&>button]:!fixed [&>button]:md:!absolute [&>button]:!top-4 [&>button]:!right-4 [&>button]:!z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent 
+        className="glass !max-w-[100vw] !w-[100vw] md:!max-w-[98vw] md:!w-[98vw] !h-[100vh] md:!h-auto !top-0 md:!top-[50%] !left-0 md:!left-[50%] !translate-x-0 md:!translate-x-[-50%] !translate-y-0 md:!translate-y-[-50%] !rounded-none md:!rounded-lg p-0 overflow-hidden [&>button]:text-[#f9abb9] md:[&>button]:text-white [&>button]:hover:text-[#f9abb9]/80 md:[&>button]:hover:text-white/80 [&>button]:glass [&>button]:rounded-full [&>button]:w-10 [&>button]:h-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:border [&>button]:border-[#f9abb9]/30 md:[&>button]:border-white/20 [&>button]:bg-[#f9abb9]/20 md:[&>button]:bg-[#f9abb9]/10 [&>button]:backdrop-blur-xl [&>button]:!fixed [&>button]:md:!absolute [&>button]:!top-4 [&>button]:!right-4 [&>button]:!z-50" 
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="flex flex-col md:flex-row h-full md:h-auto">
           {/* Left Side - Product Image */}
           <div className="relative w-full md:w-1/2 h-64 md:h-auto md:min-h-[600px] flex-shrink-0">
@@ -124,7 +153,13 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
             style={{ 
               WebkitOverflowScrolling: 'touch',
               maxHeight: '100vh',
-              paddingBottom: 'env(safe-area-inset-bottom)'
+              height: '100%',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              touchAction: 'pan-y'
+            }}
+            onTouchStart={(e) => {
+              // Prevent touch events from propagating to body
+              e.stopPropagation()
             }}
           >
             <DialogHeader className="mb-6">
@@ -163,14 +198,8 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   onFocus={(e) => {
-                    // Scroll input into view on mobile
-                    setTimeout(() => {
-                      e.target.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center',
-                        inline: 'nearest'
-                      })
-                    }, 300)
+                    // Scroll input into view within modal container
+                    scrollInputIntoView(e.target)
                   }}
                   className="w-full px-4 py-3 rounded-full border border-white/20 bg-white/60 backdrop-blur-sm text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[#f9abb9]/50 transition-all"
                   placeholder="Your name"
@@ -190,14 +219,8 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                   value={formData.phone}
                   onChange={handlePhoneChange}
                   onFocus={(e) => {
-                    // Scroll input into view on mobile
-                    setTimeout(() => {
-                      e.target.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center',
-                        inline: 'nearest'
-                      })
-                    }, 300)
+                    // Scroll input into view within modal container
+                    scrollInputIntoView(e.target)
                   }}
                   maxLength={14} // (XXX) XXX-XXXX = 14 characters
                   className="w-full px-4 py-3 rounded-full border border-white/20 bg-white/60 backdrop-blur-sm text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[#f9abb9]/50 transition-all"
