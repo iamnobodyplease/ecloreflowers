@@ -40,27 +40,48 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     if (open) {
       // Save current scroll position
       const scrollY = window.scrollY
+      const scrollX = window.scrollX
       
-      // Prevent body scroll
-      document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.width = '100%'
+      // Prevent body scroll - use a more reliable method
+      const body = document.body
+      const html = document.documentElement
+      
+      // Store original styles
+      const originalBodyOverflow = body.style.overflow
+      const originalBodyPosition = body.style.position
+      const originalBodyTop = body.style.top
+      const originalBodyLeft = body.style.left
+      const originalBodyWidth = body.style.width
+      const originalHtmlOverflow = html.style.overflow
+      
+      // Apply styles to prevent scroll
+      body.style.overflow = 'hidden'
+      body.style.position = 'fixed'
+      body.style.top = `-${scrollY}px`
+      body.style.left = `-${scrollX}px`
+      body.style.width = '100%'
+      html.style.overflow = 'hidden'
       
       return () => {
-        // Restore body scroll and position
-        document.body.style.overflow = ''
-        document.body.style.position = ''
-        document.body.style.top = ''
-        document.body.style.width = ''
-        window.scrollTo(0, scrollY)
+        // Restore original styles
+        body.style.overflow = originalBodyOverflow
+        body.style.position = originalBodyPosition
+        body.style.top = originalBodyTop
+        body.style.left = originalBodyLeft
+        body.style.width = originalBodyWidth
+        html.style.overflow = originalHtmlOverflow
+        
+        // Restore scroll position
+        window.scrollTo(scrollX, scrollY)
       }
     }
   }, [open])
 
   // Handle input focus and scroll within modal container
   const scrollInputIntoView = (element: HTMLElement) => {
-    const container = formContainerRef.current
+    // Find the scrollable container (DialogContent)
+    const dialogContent = formContainerRef.current?.closest('[data-slot="dialog-content"]') as HTMLElement
+    const container = dialogContent || formContainerRef.current
     if (!container) return
 
     setTimeout(() => {
@@ -68,13 +89,13 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
       const elementRect = element.getBoundingClientRect()
       
       // Calculate if element is outside visible area
-      const isAbove = elementRect.top < containerRect.top
-      const isBelow = elementRect.bottom > containerRect.bottom
+      const isAbove = elementRect.top < containerRect.top + 100 // Add some padding
+      const isBelow = elementRect.bottom > containerRect.bottom - 100
       
       if (isAbove || isBelow) {
         // Calculate scroll position to center the element
         const scrollTop = container.scrollTop
-        const elementOffsetTop = element.offsetTop
+        const elementOffsetTop = element.offsetTop - (container.offsetTop || 0)
         const containerHeight = container.clientHeight
         const elementHeight = element.offsetHeight
         
@@ -132,10 +153,18 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="glass !max-w-[100vw] !w-[100vw] md:!max-w-[98vw] md:!w-[98vw] !h-[100vh] md:!h-auto !top-0 md:!top-[50%] !left-0 md:!left-[50%] !translate-x-0 md:!translate-x-[-50%] !translate-y-0 md:!translate-y-[-50%] !rounded-none md:!rounded-lg p-0 overflow-hidden [&>button]:text-[#f9abb9] md:[&>button]:text-white [&>button]:hover:text-[#f9abb9]/80 md:[&>button]:hover:text-white/80 [&>button]:glass [&>button]:rounded-full [&>button]:w-10 [&>button]:h-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:border [&>button]:border-[#f9abb9]/30 md:[&>button]:border-white/20 [&>button]:bg-[#f9abb9]/20 md:[&>button]:bg-[#f9abb9]/10 [&>button]:backdrop-blur-xl [&>button]:!fixed [&>button]:md:!absolute [&>button]:!top-4 [&>button]:!right-4 [&>button]:!z-50" 
+        className="glass !max-w-[100vw] !w-[100vw] md:!max-w-[98vw] md:!w-[98vw] !h-[100dvh] md:!h-auto !top-0 md:!top-[50%] !left-0 md:!left-[50%] !translate-x-0 md:!translate-x-[-50%] !translate-y-0 md:!translate-y-[-50%] !rounded-none md:!rounded-lg p-0 !overflow-y-auto md:overflow-hidden [&>button]:text-[#f9abb9] md:[&>button]:text-white [&>button]:hover:text-[#f9abb9]/80 md:[&>button]:hover:text-white/80 [&>button]:glass [&>button]:rounded-full [&>button]:w-10 [&>button]:h-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:border [&>button]:border-[#f9abb9]/30 md:[&>button]:border-white/20 [&>button]:bg-[#f9abb9]/20 md:[&>button]:bg-[#f9abb9]/10 [&>button]:backdrop-blur-xl [&>button]:!fixed [&>button]:md:!absolute [&>button]:!top-4 [&>button]:!right-4 [&>button]:!z-50" 
         onOpenAutoFocus={(e) => e.preventDefault()}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+          overscrollBehavior: 'contain'
+        }}
       >
-        <div className="flex flex-col md:flex-row h-full md:h-auto">
+        <div 
+          ref={formContainerRef}
+          className="flex flex-col md:flex-row min-h-full md:h-auto"
+        >
           {/* Left Side - Product Image */}
           <div className="relative w-full md:w-1/2 h-64 md:h-auto md:min-h-[600px] flex-shrink-0">
             <Image
@@ -148,18 +177,9 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
           {/* Right Side - Product Info and Form */}
           <div 
-            ref={formContainerRef}
-            className="w-full md:w-1/2 p-6 md:p-12 flex flex-col flex-1 overflow-y-auto overscroll-contain"
+            className="w-full md:w-1/2 p-6 md:p-12 flex flex-col flex-1"
             style={{ 
-              WebkitOverflowScrolling: 'touch',
-              maxHeight: '100vh',
-              height: '100%',
-              paddingBottom: 'env(safe-area-inset-bottom)',
-              touchAction: 'pan-y'
-            }}
-            onTouchStart={(e) => {
-              // Prevent touch events from propagating to body
-              e.stopPropagation()
+              paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)'
             }}
           >
             <DialogHeader className="mb-6">
