@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,36 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     phone: "",
     dateDesired: undefined as Date | undefined,
   })
+  const formContainerRef = useRef<HTMLDivElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const phoneInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle input focus and scroll on mobile
+  useEffect(() => {
+    if (!open) return
+
+    const handleInputFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'BUTTON') {
+        // Small delay to ensure keyboard is opening
+        setTimeout(() => {
+          target.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          })
+        }, 300)
+      }
+    }
+
+    const formContainer = formContainerRef.current
+    if (formContainer) {
+      formContainer.addEventListener('focusin', handleInputFocus)
+      return () => {
+        formContainer.removeEventListener('focusin', handleInputFocus)
+      }
+    }
+  }, [open])
 
   const formatPhoneNumber = (value: string) => {
     // Remove all non-digit characters
@@ -75,7 +105,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass !max-w-[100vw] !w-[100vw] md:!max-w-[98vw] md:!w-[98vw] !h-[100vh] md:!h-auto !top-0 md:!top-[50%] !left-0 md:!left-[50%] !translate-x-0 md:!translate-x-[-50%] !translate-y-0 md:!translate-y-[-50%] !rounded-none md:!rounded-lg p-0 overflow-hidden [&>button]:text-[#f9abb9] md:[&>button]:text-white [&>button]:hover:text-[#f9abb9]/80 md:[&>button]:hover:text-white/80 [&>button]:glass [&>button]:rounded-full [&>button]:w-10 [&>button]:h-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:border [&>button]:border-[#f9abb9]/30 md:[&>button]:border-white/20 [&>button]:bg-[#f9abb9]/20 md:[&>button]:bg-[#f9abb9]/10 [&>button]:backdrop-blur-xl [&>button]:!fixed [&>button]:md:!absolute [&>button]:!top-4 [&>button]:!right-4 [&>button]:!z-50">
+      <DialogContent className="glass !max-w-[100vw] !w-[100vw] md:!max-w-[98vw] md:!w-[98vw] !h-[100vh] md:!h-auto !top-0 md:!top-[50%] !left-0 md:!left-[50%] !translate-x-0 md:!translate-x-[-50%] !translate-y-0 md:!translate-y-[-50%] !rounded-none md:!rounded-lg p-0 overflow-hidden [&>button]:text-[#f9abb9] md:[&>button]:text-white [&>button]:hover:text-[#f9abb9]/80 md:[&>button]:hover:text-white/80 [&>button]:glass [&>button]:rounded-full [&>button]:w-10 [&>button]:h-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:border [&>button]:border-[#f9abb9]/30 md:[&>button]:border-white/20 [&>button]:bg-[#f9abb9]/20 md:[&>button]:bg-[#f9abb9]/10 [&>button]:backdrop-blur-xl [&>button]:!fixed [&>button]:md:!absolute [&>button]:!top-4 [&>button]:!right-4 [&>button]:!z-50" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="flex flex-col md:flex-row h-full md:h-auto">
           {/* Left Side - Product Image */}
           <div className="relative w-full md:w-1/2 h-64 md:h-auto md:min-h-[600px] flex-shrink-0">
@@ -88,7 +118,15 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
           </div>
 
           {/* Right Side - Product Info and Form */}
-          <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col flex-1 overflow-y-auto">
+          <div 
+            ref={formContainerRef}
+            className="w-full md:w-1/2 p-6 md:p-12 flex flex-col flex-1 overflow-y-auto overscroll-contain"
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              maxHeight: '100vh',
+              paddingBottom: 'env(safe-area-inset-bottom)'
+            }}
+          >
             <DialogHeader className="mb-6">
               <DialogTitle className="text-3xl font-serif text-white mb-2">
                 {product.title}
@@ -118,13 +156,25 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                   Name
                 </label>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   id="name"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onFocus={(e) => {
+                    // Scroll input into view on mobile
+                    setTimeout(() => {
+                      e.target.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                      })
+                    }, 300)
+                  }}
                   className="w-full px-4 py-3 rounded-full border border-white/20 bg-white/60 backdrop-blur-sm text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[#f9abb9]/50 transition-all"
                   placeholder="Your name"
+                  autoComplete="name"
                 />
               </div>
 
@@ -133,15 +183,27 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                   Phone Number
                 </label>
                 <input
+                  ref={phoneInputRef}
                   type="tel"
                   id="phone"
                   required
                   value={formData.phone}
                   onChange={handlePhoneChange}
+                  onFocus={(e) => {
+                    // Scroll input into view on mobile
+                    setTimeout(() => {
+                      e.target.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                      })
+                    }, 300)
+                  }}
                   maxLength={14} // (XXX) XXX-XXXX = 14 characters
                   className="w-full px-4 py-3 rounded-full border border-white/20 bg-white/60 backdrop-blur-sm text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[#f9abb9]/50 transition-all"
                   placeholder="(555) 123-4567"
                   pattern="[0-9]{10}"
+                  autoComplete="tel"
                 />
                 {formData.phone && getPhoneDigits(formData.phone).length !== 10 && (
                   <p className="mt-1 text-xs text-[#f9abb9]/80">
@@ -186,7 +248,6 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                         today.setHours(0, 0, 0, 0)
                         return date < today
                       }}
-                      initialFocus
                       className="glass bg-transparent text-white [&_.rdp-button_previous]:text-white/70 [&_.rdp-button_previous]:hover:text-white [&_.rdp-button_previous]:hover:bg-[#f9abb9]/20 [&_.rdp-button_next]:text-white/70 [&_.rdp-button_next]:hover:text-white [&_.rdp-button_next]:hover:bg-[#f9abb9]/20 [&_.rdp-caption_label]:text-white [&_.rdp-weekday]:text-white/60 [&_.rdp-day]:text-white/80 [&_.rdp-day:hover]:bg-[#f9abb9]/20 [&_.rdp-day:hover]:text-white [&_.rdp-day[data-selected=true]]:bg-[#f9abb9] [&_.rdp-day[data-selected=true]]:text-black [&_.rdp-day[data-selected=true]]:font-semibold [&_.rdp-day[data-disabled=true]]:text-white/20 [&_.rdp-day[data-disabled=true]]:opacity-50 [&_.rdp-day[data-today=true]]:bg-[#f9abb9]/30 [&_.rdp-day[data-today=true]]:text-white [&_.rdp-day[data-today=true]]:font-semibold"
                     />
                   </PopoverContent>
