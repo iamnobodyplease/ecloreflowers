@@ -58,8 +58,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Send SMS via Resend (email-to-SMS)
-    // Use verified domain from environment variable, fallback to onboarding@resend.dev
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+    // Use verified domain - must be set in environment variables
+    const fromEmail = process.env.RESEND_FROM_EMAIL
+    
+    if (!fromEmail) {
+      console.error('RESEND_FROM_EMAIL not set in environment variables')
+      return NextResponse.json(
+        { error: 'Email configuration missing' },
+        { status: 500 }
+      )
+    }
     
     console.log('Sending from:', fromEmail)
     console.log('Sending to:', recipients)
