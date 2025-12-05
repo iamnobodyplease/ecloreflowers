@@ -31,6 +31,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     phone: "",
     dateDesired: undefined as Date | undefined,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const formContainerRef = useRef<HTMLDivElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const phoneInputRef = useRef<HTMLInputElement>(null)
@@ -132,7 +133,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     return phone.replace(/\D/g, "")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.dateDesired) {
       return // Date is required
@@ -141,11 +142,40 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
     if (phoneDigits.length !== 10) {
       return // Phone number must be exactly 10 digits
     }
-    // Handle form submission here
-    console.log("Form submitted:", { product, ...formData, phone: phoneDigits })
-    // You can add API call here
-    onOpenChange(false)
-    setFormData({ name: "", phone: "", dateDesired: undefined })
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/submit-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: phoneDigits,
+          dateDesired: formData.dateDesired.toISOString(),
+          productTitle: product.title,
+          productPrice: product.price,
+        }),
+      })
+
+      if (response.ok) {
+        // Success - close modal and reset form
+        onOpenChange(false)
+        setFormData({ name: "", phone: "", dateDesired: undefined })
+      } else {
+        // Handle error
+        const error = await response.json()
+        console.error('Failed to submit form:', error)
+        alert('Failed to submit form. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error)
+      alert('Failed to submit form. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!product) return null
@@ -299,9 +329,10 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
               <button
                 type="submit"
-                className="mt-auto px-8 py-3 bg-[#f9abb9] hover:bg-[#f9abb9]/90 text-black rounded-full font-medium transition-colors"
+                disabled={isSubmitting}
+                className="mt-auto px-8 py-3 bg-[#f9abb9] hover:bg-[#f9abb9]/90 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-full font-medium transition-colors"
               >
-                Submit
+                {isSubmitting ? 'Submitting...' : 'Submit'}
               </button>
             </form>
           </div>
