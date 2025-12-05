@@ -51,10 +51,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Send SMS via Resend (email-to-SMS)
-    // Note: Resend free tier allows sending from onboarding@resend.dev
-    // For production, you'll need to verify your domain
+    // Use verified domain from environment variable, fallback to onboarding@resend.dev
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+    
+    console.log('Sending from:', fromEmail)
+    console.log('Sending to:', recipients)
+
     const result = await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: fromEmail,
       to: recipients,
       subject: 'New Order - Eclore',
       text: `New order from ${name}!\n\nPhone: ${phone}\nDate Desired: ${formattedDate}\nProduct: ${productTitle}\nPrice: ${productPrice}\n\nReply ASAP!`,
