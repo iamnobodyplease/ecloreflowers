@@ -4,6 +4,15 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
+  // Check if Resend API key is configured
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY not configured')
+    return NextResponse.json(
+      { error: 'Email service not configured' },
+      { status: 500 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { name, phone, dateDesired, productTitle, productPrice } = body

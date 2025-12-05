@@ -167,13 +167,14 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
         setShowThankYou(true)
       } else {
         // Handle error
-        const error = await response.json()
-        console.error('Failed to submit form:', error)
-        alert('Failed to submit form. Please try again.')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Failed to submit form:', errorData)
+        const errorMessage = errorData.error || errorData.details || 'Failed to submit form. Please try again.'
+        alert(errorMessage)
       }
     } catch (error) {
       console.error('Error submitting form:', error)
-      alert('Failed to submit form. Please try again.')
+      alert('Network error. Please check your connection and try again.')
     } finally {
       setIsSubmitting(false)
     }
