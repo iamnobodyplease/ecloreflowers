@@ -7,9 +7,20 @@ import { cn } from "@/lib/utils"
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
-  title: "Eclore | Digital Agency",
-  description: "Shaping the future of digital experiences.",
-    generator: 'v0.app'
+  title: "Eclore - European Style Luxury Flowers in the DMV",
+  description: "Bespoke European style bouquets and gifts in Virginia Maryland and DC.",
+  generator: 'v0.app',
+  openGraph: {
+    title: "Eclore - European Style Luxury Flowers in the DMV",
+    description: "Bespoke European style bouquets and gifts in Virginia Maryland and DC.",
+    type: "website",
+    siteName: "Eclore",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Eclore - European Style Luxury Flowers in the DMV",
+    description: "Bespoke European style bouquets and gifts in Virginia Maryland and DC.",
+  },
 }
 
 export default function RootLayout({
